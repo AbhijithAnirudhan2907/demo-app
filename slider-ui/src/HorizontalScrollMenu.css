@@ -1,0 +1,234 @@
+/* Main container - equivalent to bg-gray-900 with flexbox centering */
+.drag-select-glass-menu {
+  position: relative;
+  width: 100%;
+  height: 128px; /* h-32 = 128px */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1a202c; /* gray-900 */
+  background-attachment: fixed; /* Keep background fixed */
+  border-radius: 12px;
+  margin: 20px auto;
+  max-width: 1200px;
+}
+
+/* Moveable glass overlay - moves between options */
+.glass-overlay-moveable {
+  position: absolute;
+  top: 24px; /* top-6 = 24px */
+  left: 0;
+  width: 120px; /* w-30 = 120px */
+  height: 80px; /* h-20 = 80px */
+  border-radius: 12px; /* rounded-xl */
+  background: rgba(255, 255, 255, 0.15); /* bg-white bg-opacity-15 */
+  border: 2px solid rgba(255, 255, 255, 0.3); /* border border-white border-opacity-30 */
+  backdrop-filter: blur(16px); /* backdrop-blur-lg */
+  -webkit-backdrop-filter: blur(16px);
+  cursor: grab;
+  z-index: 10;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 1px rgba(96, 165, 250, 0.3);
+  pointer-events: auto;
+}
+
+.glass-overlay-moveable:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 12px 35px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 0 2px rgba(96, 165, 250, 0.4);
+}
+
+.glass-overlay-moveable:active {
+  cursor: grabbing;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Fixed container for menu items - no scrolling */
+.scroll-container-menu {
+  display: flex;
+  gap: 16px; /* gap-4 = 16px */
+  padding: 20px; /* px-5 py-5 = 20px */
+  justify-content: center; /* Center the items */
+  align-items: center;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+  pointer-events: none; /* Allow glass overlay to receive events */
+}
+
+.scroll-container-menu .menu-item-card {
+  pointer-events: auto; /* Re-enable pointer events for individual items */
+}
+
+/* Individual menu items */
+.menu-item-card {
+  flex-shrink: 0; /* flex-shrink-0 */
+  width: 120px; /* w-30 = 120px */
+  height: 80px; /* h-20 = 80px */
+  border-radius: 8px; /* rounded-lg */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  cursor: pointer;
+  
+  /* Default styling - equivalent to bg-gradient-to-tr from-gray-800 to-gray-700 */
+  background: linear-gradient(to top right, #2d3748, #4a5568);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Active item styling - equivalent to scale-115 shadow-lg bg-gray-700 */
+.menu-item-card.active {
+  transform: scale(1.15); /* scale-115 */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); /* shadow-lg */
+  background: #4a5568; /* bg-gray-700 */
+  border-color: rgba(255, 255, 255, 0.3);
+  z-index: 5;
+  position: relative;
+}
+
+.menu-item-card:hover:not(.active) {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(to top right, #2d3748, #4a5568);
+  filter: brightness(1.1);
+}
+
+/* Text styling within menu items */
+.menu-link-text,
+.menu-text-span {
+  display: block;
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+  padding: 8px;
+  font-size: 14px;
+  transition: color 0.3s ease;
+}
+
+.menu-item-card.active .menu-link-text,
+.menu-item-card.active .menu-text-span {
+  color: #60a5fa; /* Light blue for active items */
+  text-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+}
+
+.menu-link-text:hover,
+.menu-text-span:hover {
+  color: #93c5fd;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .drag-select-glass-menu {
+    height: 100px;
+    margin: 15px;
+  }
+  
+  .glass-overlay-fixed {
+    width: 100px;
+    height: 60px;
+    top: 20px;
+  }
+  
+  .menu-item-card {
+    width: 100px;
+    height: 60px;
+  }
+  
+  .menu-link-text,
+  .menu-text-span {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .drag-select-glass-menu {
+    height: 80px;
+    margin: 10px;
+  }
+  
+  .glass-overlay-fixed {
+    width: 80px;
+    height: 50px;
+    top: 15px;
+  }
+  
+  .menu-item-card {
+    width: 80px;
+    height: 50px;
+  }
+  
+  .menu-link-text,
+  .menu-text-span {
+    font-size: 11px;
+    padding: 4px;
+  }
+}
+
+/* Smooth scrolling for touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .scroll-container-menu {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Focus styles for accessibility */
+.glass-overlay-fixed:focus,
+.menu-item-card:focus {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+/* Additional glass effects */
+.glass-overlay-moveable::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 100%
+  );
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Add subtle glow effect when glass is over an active item */
+.glass-overlay-moveable::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #60a5fa, #3b82f6, #8b5cf6, #60a5fa);
+  border-radius: inherit;
+  opacity: 0.3;
+  filter: blur(8px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Dragging state indicators */
+.drag-select-glass-menu.dragging .glass-overlay-moveable {
+  cursor: grabbing;
+}
+
+.drag-select-glass-menu.dragging .menu-item-card {
+  pointer-events: none;
+}
