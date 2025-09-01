@@ -236,6 +236,24 @@ body {
   border-color: #27ae60;
 }
 
+.filter-actions button.group-btn {
+  background: var(--panel-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.filter-actions button.group-btn:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.filter-actions button.group-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
 .filter-actions button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -327,6 +345,38 @@ tbody tr:hover {
 .no-data {
   text-align: center;
   color: var(--muted);
+}
+
+.task-cell {
+  max-width: 300px;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.tickets-cell {
+  max-width: 200px;
+  word-wrap: break-word;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.statuses-cell {
+  max-width: 150px;
+  word-wrap: break-word;
+  font-size: 12px;
+}
+
+.date-range-cell {
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.fallback-indicator {
+  color: var(--accent);
+  font-weight: bold;
+  margin-left: 4px;
+  cursor: help;
 }
 
 .performance-controls {

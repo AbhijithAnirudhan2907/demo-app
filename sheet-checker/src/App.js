@@ -56,8 +56,11 @@ function App() {
     return null;
   }
 
-  function parseTimeSpentToMinutes(value) {
-    if (value == null || value === '') return 0;
+  function parseTimeSpentToMinutes(value, productiveHours = 0) {
+    if (value == null || value === '') {
+      // If Time Spent is empty, use productive hours as fallback
+      return productiveHours ? Math.round(productiveHours * 60) : 0;
+    }
     if (typeof value === 'number') {
       return numericTimeAs === 'HOURS' ? Math.round(value * 60) : Math.round(value);
     }
@@ -76,7 +79,8 @@ function App() {
     if (!Number.isNaN(maybeNumber)) {
       return numericTimeAs === 'HOURS' ? Math.round(maybeNumber * 60) : Math.round(maybeNumber);
     }
-    return 0;
+    // If we can't parse Time Spent, use productive hours as fallback
+    return productiveHours ? Math.round(productiveHours * 60) : 0;
   }
 
   function requiredColumnsPresent(sampleRow) {
@@ -140,14 +144,15 @@ function App() {
     });
     const date = parseDateValue(normalized['Date']);
     const ticketRaw = String(normalized['Ticket'] ?? '').trim();
+    const productiveHours = normalized['Productive'] ? Number(normalized['Productive']) : 0;
     const record = {
       date,
       ticket: ticketRaw,
       ticketDisplay: extractTicketNumber(ticketRaw),
       task: String(normalized['Task'] ?? '').trim(),
       status: String(normalized['Status'] ?? '').trim(),
-      productive: normalized['Productive'] ? Number(normalized['Productive']) : 0, // Changed: treat as hours, not boolean
-      timeSpentMinutes: parseTimeSpentToMinutes(normalized['Time Spent']),
+      productive: productiveHours, // Changed: treat as hours, not boolean
+      timeSpentMinutes: parseTimeSpentToMinutes(normalized['Time Spent'], productiveHours),
       developer: String(normalized['Developer'] ?? '').trim(),
       comments: String(normalized['Comments'] ?? '').trim(), // Added comments field
       original: normalized
@@ -323,6 +328,7 @@ function App() {
     setPerformanceStartDate('');
     setPerformanceEndDate('');
     setPerformanceTicketFilter('');
+    setGroupByTask(false);
   }
 
   function getCurrentMonthDates() {
@@ -411,6 +417,7 @@ function App() {
   const [performanceStartDate, setPerformanceStartDate] = useState('');
   const [performanceEndDate, setPerformanceEndDate] = useState('');
   const [performanceTicketFilter, setPerformanceTicketFilter] = useState('');
+  const [groupByTask, setGroupByTask] = useState(false);
   
   const performanceRows = useMemo(() => {
     if (!performanceDeveloper) return [];
@@ -442,6 +449,50 @@ function App() {
       return true;
     });
   }, [rawRows, excludeLeave, performanceDeveloper, performanceStartDate, performanceEndDate, performanceTicketFilter]);
+
+  const groupedPerformanceData = useMemo(() => {
+    if (!groupByTask || !performanceRows.length) return null;
+
+    const taskGroups = new Map();
+    
+    performanceRows.forEach(row => {
+      const taskKey = row.task.trim() || 'Unnamed Task';
+      
+      if (!taskGroups.has(taskKey)) {
+        taskGroups.set(taskKey, {
+          task: taskKey,
+          entries: [],
+          totalMinutes: 0,
+          totalProductiveHours: 0,
+          tickets: new Set(),
+          statuses: new Set(),
+          dates: [],
+          count: 0
+        });
+      }
+      
+      const group = taskGroups.get(taskKey);
+      group.entries.push(row);
+      group.totalMinutes += row.timeSpentMinutes || 0;
+      group.totalProductiveHours += row.productive || 0;
+      group.tickets.add(row.ticketDisplay || row.ticket);
+      group.statuses.add(row.status);
+      if (row.date) group.dates.push(row.date);
+      group.count += 1;
+    });
+
+    // Convert to array and sort by productive hours descending
+    return Array.from(taskGroups.values())
+      .map(group => ({
+        ...group,
+        tickets: Array.from(group.tickets).filter(Boolean),
+        statuses: Array.from(group.statuses).filter(Boolean),
+        avgProductiveHours: group.totalProductiveHours / group.count,
+        firstDate: group.dates.length ? new Date(Math.min(...group.dates.map(d => new Date(d).getTime()))) : null,
+        lastDate: group.dates.length ? new Date(Math.max(...group.dates.map(d => new Date(d).getTime()))) : null
+      }))
+      .sort((a, b) => b.totalProductiveHours - a.totalProductiveHours);
+  }, [performanceRows, groupByTask]);
 
   const performanceTotals = useMemo(() => {
     const minutes = performanceRows.reduce((acc, r) => acc + (r.timeSpentMinutes || 0), 0);
@@ -827,7 +878,12 @@ function App() {
                     <td>{r.task}</td>
                     <td>{r.status}</td>
                     <td>{r.productive ? r.productive.toFixed(1) : '0'}</td>
-                    <td>{minutesToHoursString(r.timeSpentMinutes)}</td>
+                    <td>
+                      {minutesToHoursString(r.timeSpentMinutes)}
+                      {r.original && (!r.original['Time Spent'] || r.original['Time Spent'] === '') && r.productive > 0 && (
+                        <span className="fallback-indicator" title="Using productive hours as time spent">*</span>
+                      )}
+                    </td>
                     <td>{r.developer}</td>
                   </tr>
                 ))}
@@ -887,6 +943,13 @@ function App() {
                 </div>
                 <div className="filter-actions">
                   <button onClick={applyThisMonthPerformance} disabled={!rawRows.length} className="this-month-btn">This Month</button>
+                  <button 
+                    onClick={() => setGroupByTask(!groupByTask)} 
+                    disabled={!rawRows.length} 
+                    className={groupByTask ? 'group-btn active' : 'group-btn'}
+                  >
+                    {groupByTask ? 'Ungroup Tasks' : 'Group by Task'}
+                  </button>
                   <button onClick={resetPerformanceFilters} disabled={!rawRows.length}>Reset Filters</button>
                 </div>
               </div>
@@ -980,35 +1043,87 @@ function App() {
 
           {performanceDeveloper && (
             <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Ticket</th>
-                    <th>Task</th>
-                    <th>Status</th>
-                    <th>Productive Hours</th>
-                    <th>Time Spent</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {performanceRows.map((r, idx) => (
-                    <tr key={idx}>
-                      <td>{r.date ? new Date(r.date).toLocaleDateString() : ''}</td>
-                      <td title={r.ticket}>{r.ticketDisplay}</td>
-                      <td>{r.task}</td>
-                      <td>{r.status}</td>
-                      <td>{r.productive ? r.productive.toFixed(1) : '0'}</td>
-                      <td>{minutesToHoursString(r.timeSpentMinutes)}</td>
-                    </tr>
-                  ))}
-                  {!performanceRows.length && (
+              {groupByTask && groupedPerformanceData ? (
+                <table>
+                  <thead>
                     <tr>
-                      <td colSpan="6" className="no-data">No rows match current filters for this developer.</td>
+                      <th>Task</th>
+                      <th>Entries</th>
+                      <th>Total Productive Hours</th>
+                      <th>Avg Hours/Entry</th>
+                      <th>Total Time Spent</th>
+                      <th>Tickets</th>
+                      <th>Statuses</th>
+                      <th>Date Range</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {groupedPerformanceData.map((group, idx) => (
+                      <tr key={idx}>
+                        <td className="task-cell">{group.task}</td>
+                        <td>{group.count}</td>
+                        <td>{group.totalProductiveHours.toFixed(1)}</td>
+                        <td>{group.avgProductiveHours.toFixed(1)}</td>
+                        <td>{minutesToHoursString(group.totalMinutes)}</td>
+                        <td className="tickets-cell">
+                          {group.tickets.slice(0, 3).join(', ')}
+                          {group.tickets.length > 3 && ` +${group.tickets.length - 3} more`}
+                        </td>
+                        <td className="statuses-cell">
+                          {group.statuses.join(', ')}
+                        </td>
+                        <td className="date-range-cell">
+                          {group.firstDate && group.lastDate ? (
+                            group.firstDate.toLocaleDateString() === group.lastDate.toLocaleDateString() ? 
+                              group.firstDate.toLocaleDateString() :
+                              `${group.firstDate.toLocaleDateString()} - ${group.lastDate.toLocaleDateString()}`
+                          ) : ''}
+                        </td>
+                      </tr>
+                    ))}
+                    {!groupedPerformanceData.length && (
+                      <tr>
+                        <td colSpan="8" className="no-data">No tasks to group.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Ticket</th>
+                      <th>Task</th>
+                      <th>Status</th>
+                      <th>Productive Hours</th>
+                      <th>Time Spent</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {performanceRows.map((r, idx) => (
+                      <tr key={idx}>
+                        <td>{r.date ? new Date(r.date).toLocaleDateString() : ''}</td>
+                        <td title={r.ticket}>{r.ticketDisplay}</td>
+                        <td>{r.task}</td>
+                        <td>{r.status}</td>
+                        <td>{r.productive ? r.productive.toFixed(1) : '0'}</td>
+                        <td>
+                          {minutesToHoursString(r.timeSpentMinutes)}
+                          {r.original && (!r.original['Time Spent'] || r.original['Time Spent'] === '') && r.productive > 0 && (
+                            <span className="fallback-indicator" title="Using productive hours as time spent">*</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {!performanceRows.length && (
+                      <tr>
+                        <td colSpan="6" className="no-data">No rows match current filters for this developer.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
         </div>
