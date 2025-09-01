@@ -1044,7 +1044,7 @@ function App() {
           {performanceDeveloper && (
             <div className="table-wrapper">
               {groupByTask && groupedPerformanceData ? (
-                <table>
+                <table className="grouped-table">
                   <thead>
                     <tr>
                       <th>Task</th>

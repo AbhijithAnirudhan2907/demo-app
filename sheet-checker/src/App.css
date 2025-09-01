@@ -322,7 +322,21 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
+
+.grouped-table {
+  table-layout: auto;
+}
+
+.grouped-table th:nth-child(1) { width: 30%; } /* Task */
+.grouped-table th:nth-child(2) { width: 8%; }  /* Entries */
+.grouped-table th:nth-child(3) { width: 12%; } /* Total Productive Hours */
+.grouped-table th:nth-child(4) { width: 10%; } /* Avg Hours/Entry */
+.grouped-table th:nth-child(5) { width: 10%; } /* Total Time Spent */
+.grouped-table th:nth-child(6) { width: 15%; } /* Tickets */
+.grouped-table th:nth-child(7) { width: 10%; } /* Statuses */
+.grouped-table th:nth-child(8) { width: 15%; } /* Date Range */
 
 thead th {
   position: sticky;
@@ -348,9 +362,13 @@ tbody tr:hover {
 }
 
 .task-cell {
-  max-width: 300px;
+  max-width: 250px;
+  min-width: 200px;
   word-wrap: break-word;
+  word-break: break-word;
   line-height: 1.4;
+  white-space: normal;
+  vertical-align: top;
 }
 
 .tickets-cell {
@@ -370,6 +388,23 @@ tbody tr:hover {
   white-space: nowrap;
   font-size: 12px;
   color: var(--muted);
+}
+
+.grouped-table .task-cell {
+  padding-right: 12px;
+}
+
+.grouped-table td:nth-child(2),
+.grouped-table td:nth-child(3),
+.grouped-table td:nth-child(4),
+.grouped-table td:nth-child(5) {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.grouped-table td:nth-child(8) {
+  white-space: nowrap;
+  font-size: 12px;
 }
 
 .fallback-indicator {
@@ -458,4 +493,22 @@ tbody tr:hover {
   .chart-container.chart-wide {
     grid-column: 1;
   }
+
+  .grouped-table {
+    font-size: 14px;
+  }
+
+  .grouped-table .task-cell {
+    max-width: 200px;
+    min-width: 150px;
+  }
+
+  .grouped-table th:nth-child(1) { width: 40%; } /* Task - more space on mobile */
+  .grouped-table th:nth-child(2) { width: 10%; } /* Entries */
+  .grouped-table th:nth-child(3) { width: 15%; } /* Total Productive Hours */
+  .grouped-table th:nth-child(4) { width: 12%; } /* Avg Hours/Entry */
+  .grouped-table th:nth-child(5) { width: 12%; } /* Total Time Spent */
+  .grouped-table th:nth-child(6) { width: 15%; } /* Tickets */
+  .grouped-table th:nth-child(7) { width: 10%; } /* Statuses */
+  .grouped-table th:nth-child(8) { width: 15%; } /* Date Range */
 }
